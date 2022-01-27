@@ -1,19 +1,19 @@
 import * as jose from "jose"
 import { Db } from "./Db";
-import { Option, some, none } from "./TsOption"
+import { Optional, Some, None } from "optional-typescript"
 import { match, select } from 'ts-pattern';
 
 export class MongoClient {
     url: URL
-    sessionSecret: Option<jose.KeyLike>
-    db: Option<Db>
+    sessionSecret: Optional<jose.KeyLike>
+    db: Optional<Db>
     constructor(urlString) {
         let url = new URL(urlString);
         url.username = url.password = ""
         this.url = url
 
-        this.sessionSecret = none()
-        this.db = none()
+        this.sessionSecret = None()
+        this.db = None()
     }
     async connect(username, password) {
 
@@ -50,6 +50,6 @@ export class MongoClient {
 
         const { secret } = payload;
 
-        this.sessionSecret = some(await jose.importJWK(JSON.parse(decodeURIComponent(secret as string)), 'A256GCM') as jose.KeyLike)
+        this.sessionSecret = Some(await jose.importJWK(JSON.parse(decodeURIComponent(secret as string)), 'A256GCM') as jose.KeyLike)
     }
 }
