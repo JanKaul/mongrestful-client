@@ -1,10 +1,18 @@
 import { expect } from '@esm-bundle/chai';
 import { MongoClient } from "../dist/index"
 
-describe("get publicKey", () => {
+let client = new MongoClient("http://localhost:3000");
+
+describe("connect to server", () => {
     it('', (done) => {
-        let client = new MongoClient("http://localhost:3000");
         client.connect("jan", "kaul").then(_ => { expect(client.url).to.not.equal(undefined); done() })
+            .catch(x => { console.log(x); })
+    })
+});
+
+describe("close session", () => {
+    it('', (done) => {
+        client.close().then(_ => { expect(client.url).to.equal(undefined); done() })
             .catch(x => { console.log(x); done() })
     })
 });

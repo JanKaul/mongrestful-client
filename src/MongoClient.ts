@@ -20,7 +20,7 @@ export class MongoClient {
         let publicUrl = this.url
         publicUrl.pathname = "/public_key"
 
-        const serverPublicKey = await fetch(publicUrl.toString(), { method: "GET" })
+        const serverPublicKey = await fetch(publicUrl.toString(), { method: "GET", credentials: "include" })
             .then(response => { return response.text() })
             .then(text => { return jose.importSPKI(decodeURIComponent(text), 'RSA-OAEP-256') })
 
@@ -40,6 +40,7 @@ export class MongoClient {
 
         const secretToken = await fetch(connectUrl.toString(), {
             method: "POST",
+            credentials: "include",
             headers: {
                 'Content-Type': 'text/plain'
             },
@@ -51,5 +52,41 @@ export class MongoClient {
         const { secret } = payload;
 
         this.sessionSecret = Some(await jose.importJWK(JSON.parse(decodeURIComponent(secret as string)), 'A256GCM') as jose.KeyLike)
+    }
+
+    async close() {
+
+        await match(this.sessionSecret)
+            .with({ hasValue: false }, async (_) => None())
+            .with({ hasValue: true }, async (res) => {
+
+                const jwt = await new jose.EncryptJWT({
+                    authorized: true
+                })
+                    .setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
+                    .setIssuedAt()
+                    .encrypt(res.val())
+
+                let closeUrl = this.url
+                closeUrl.pathname = "/close"
+
+                const successToken = await fetch(closeUrl.toString(), {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                    body: jwt
+                }).then(response => { return response.text() })
+
+                const { payload, protectedHeader } = await jose.jwtDecrypt(successToken, res.val())
+
+                const { success } = payload;
+
+                if (success) { this.url = undefined }
+
+                return None()
+            })
+            .exhaustive()
     }
 }
