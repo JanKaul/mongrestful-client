@@ -17,10 +17,10 @@
   "author": "Jan Kaul",
   "license": "Apache-2.0",
   "dependencies": {
-    "@hqoss/monads": "^0.5.0",
     "jose": "^4.3.9",
     "optional-typescript": "^1.6.0",
-    "ts-pattern": "^3.3.5"
+    "ts-pattern": "^3.3.5",
+    "tsmonads": "^2.5.3"
   },
   "devDependencies": {
     "@esm-bundle/chai": "^4.3.4-fix.0",

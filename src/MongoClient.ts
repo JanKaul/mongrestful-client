@@ -1,16 +1,16 @@
 import * as jose from "jose"
 import { Db } from "./Db";
-import { Optional, Some, None } from "optional-typescript"
+import { Maybe, nothing, maybe, Either, left, right } from "tsmonads";
 import { match, select } from 'ts-pattern';
 
-export let sessionSecret: Optional<jose.KeyLike> = None()
+export let sessionSecret: Maybe<jose.KeyLike> = nothing()
 
 export class MongoClient {
     url: URL
-    db: Optional<Db>
+    db: Maybe<Db>
     constructor(urlString) {
         this.url = urlString;
-        this.db = None()
+        this.db = nothing()
     }
     async connect() {
 
@@ -47,13 +47,13 @@ export class MongoClient {
 
         const { secret } = payload;
 
-        sessionSecret = Some(await jose.importJWK(JSON.parse(decodeURIComponent(secret as string)), 'A256GCM') as jose.KeyLike)
+        sessionSecret = maybe(await jose.importJWK(JSON.parse(decodeURIComponent(secret as string)), 'A256GCM') as jose.KeyLike)
     }
 
     async close() {
 
         await match(sessionSecret)
-            .with({ hasValue: false }, async (_) => None())
+            .with({ hasValue: false }, async (_) => nothing())
             .with({ hasValue: true }, async (res) => {
 
                 const jwt = await new jose.EncryptJWT({
@@ -61,7 +61,7 @@ export class MongoClient {
                 })
                     .setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
                     .setIssuedAt()
-                    .encrypt(res.val())
+                    .encrypt(res.unsafeLift())
 
                 let closeUrl = new URL(this.url)
                 closeUrl.pathname = "/close"
@@ -75,13 +75,13 @@ export class MongoClient {
                     body: jwt
                 }).then(response => { return response.text() })
 
-                const { payload, protectedHeader } = await jose.jwtDecrypt(successToken, res.val())
+                const { payload, protectedHeader } = await jose.jwtDecrypt(successToken, res.unsafeLift())
 
                 const { success } = payload;
 
-                if (success) { sessionSecret = None() }
+                if (success) { sessionSecret = nothing() }
 
-                return None()
+                return nothing()
             })
             .exhaustive()
     }
