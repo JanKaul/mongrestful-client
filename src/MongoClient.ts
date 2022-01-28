@@ -3,21 +3,18 @@ import { Db } from "./Db";
 import { Optional, Some, None } from "optional-typescript"
 import { match, select } from 'ts-pattern';
 
+export let sessionSecret: Optional<jose.KeyLike> = None()
+
 export class MongoClient {
     url: URL
-    sessionSecret: Optional<jose.KeyLike>
     db: Optional<Db>
     constructor(urlString) {
-        let url = new URL(urlString);
-        url.username = url.password = ""
-        this.url = url
-
-        this.sessionSecret = None()
+        this.url = urlString;
         this.db = None()
     }
-    async connect(username, password) {
+    async connect() {
 
-        let publicUrl = this.url
+        let publicUrl = new URL(this.url)
         publicUrl.pathname = "/public_key"
 
         const serverPublicKey = await fetch(publicUrl.toString(), { method: "GET", credentials: "include" })
@@ -27,15 +24,14 @@ export class MongoClient {
         const { publicKey, privateKey } = await jose.generateKeyPair('RSA-OAEP-256')
 
         const jwt = await new jose.EncryptJWT({
-            username: encodeURIComponent(username),
-            password: encodeURIComponent(password),
+            url: encodeURIComponent(this.url.toString()),
             clientPublicKey: encodeURIComponent(await jose.exportSPKI(publicKey))
         })
             .setProtectedHeader({ alg: 'RSA-OAEP-256', enc: 'A256GCM' })
             .setIssuedAt()
             .encrypt(serverPublicKey)
 
-        let connectUrl = this.url
+        let connectUrl = new URL(this.url)
         connectUrl.pathname = "/connect"
 
         const secretToken = await fetch(connectUrl.toString(), {
@@ -51,12 +47,12 @@ export class MongoClient {
 
         const { secret } = payload;
 
-        this.sessionSecret = Some(await jose.importJWK(JSON.parse(decodeURIComponent(secret as string)), 'A256GCM') as jose.KeyLike)
+        sessionSecret = Some(await jose.importJWK(JSON.parse(decodeURIComponent(secret as string)), 'A256GCM') as jose.KeyLike)
     }
 
     async close() {
 
-        await match(this.sessionSecret)
+        await match(sessionSecret)
             .with({ hasValue: false }, async (_) => None())
             .with({ hasValue: true }, async (res) => {
 
@@ -67,7 +63,7 @@ export class MongoClient {
                     .setIssuedAt()
                     .encrypt(res.val())
 
-                let closeUrl = this.url
+                let closeUrl = new URL(this.url)
                 closeUrl.pathname = "/close"
 
                 const successToken = await fetch(closeUrl.toString(), {
@@ -83,7 +79,7 @@ export class MongoClient {
 
                 const { success } = payload;
 
-                if (success) { this.url = undefined }
+                if (success) { sessionSecret = None() }
 
                 return None()
             })

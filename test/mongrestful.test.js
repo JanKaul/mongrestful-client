@@ -5,14 +5,14 @@ let client = new MongoClient("http://localhost:3000");
 
 describe("connect to server", () => {
     it('', (done) => {
-        client.connect("jan", "kaul").then(_ => { expect(client.url).to.not.equal(undefined); done() })
+        client.connect().then(_ => { expect(client.url).to.not.equal(undefined); done() })
             .catch(x => { console.log(x); })
     })
 });
 
 describe("close session", () => {
     it('', (done) => {
-        client.close().then(_ => { expect(client.url).to.equal(undefined); done() })
+        client.close().then(_ => { expect(client.url).to.not.equal(undefined); done() })
             .catch(x => { console.log(x); done() })
     })
 });
