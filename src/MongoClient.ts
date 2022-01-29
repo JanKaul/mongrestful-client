@@ -1,7 +1,9 @@
 import * as jose from "jose"
-import { Db } from "./Db";
 import { Option, some, none, Result, ok, err } from "matchingmonads"
 import { match, select } from 'ts-pattern';
+
+import { Db } from "./Db";
+import { fetchPostEncrypted } from "./fetch";
 
 export let sessionSecret: Option<jose.KeyLike> = none()
 
@@ -23,6 +25,9 @@ export class MongoClient {
 
         const { publicKey, privateKey } = await jose.generateKeyPair('RSA-OAEP-256')
 
+        let connectUrl = new URL(this.url)
+        connectUrl.pathname = "/connect"
+
         const jwt = await new jose.EncryptJWT({
             url: encodeURIComponent(this.url.toString()),
             clientPublicKey: encodeURIComponent(await jose.exportSPKI(publicKey))
@@ -31,10 +36,7 @@ export class MongoClient {
             .setIssuedAt()
             .encrypt(serverPublicKey)
 
-        let connectUrl = new URL(this.url)
-        connectUrl.pathname = "/connect"
-
-        const secretToken = await fetch(connectUrl.toString(), {
+        const responseToken = await fetch(connectUrl.toString(), {
             method: "POST",
             credentials: "include",
             headers: {
@@ -43,7 +45,7 @@ export class MongoClient {
             body: jwt
         }).then(response => { return response.text() })
 
-        const { payload, protectedHeader } = await jose.jwtDecrypt(secretToken, privateKey)
+        const { payload, protectedHeader } = await jose.jwtDecrypt(responseToken, privateKey)
 
         const { result } = payload;
 
@@ -59,28 +61,10 @@ export class MongoClient {
             .with({ tag: "none" }, async (_) => none())
             .with({ tag: "some" }, async (x) => {
 
-                const jwt = await new jose.EncryptJWT({
-                    authorized: true
-                })
-                    .setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
-                    .setIssuedAt()
-                    .encrypt(x.value)
-
                 let closeUrl = new URL(this.url)
                 closeUrl.pathname = "/close"
 
-                const successToken = await fetch(closeUrl.toString(), {
-                    method: "POST",
-                    credentials: "include",
-                    headers: {
-                        'Content-Type': 'text/plain'
-                    },
-                    body: jwt
-                }).then(response => { return response.text() })
-
-                const { payload, protectedHeader } = await jose.jwtDecrypt(successToken, x.value)
-
-                const { result } = payload;
+                const result = await fetchPostEncrypted(closeUrl.toString(), { authorized: true }, x.value)
 
                 return match(result as Result<string, string>)
                     .with({ tag: "ok" }, x => { sessionSecret = none(); console.log(x.value); return none() })
