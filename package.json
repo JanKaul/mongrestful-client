@@ -18,8 +18,8 @@
   "license": "Apache-2.0",
   "dependencies": {
     "jose": "^4.3.9",
-    "ts-pattern": "^3.3.5",
-    "tsmonads": "^2.5.3"
+    "matchingmonads": "^0.0.2",
+    "ts-pattern": "^3.3.5"
   },
   "devDependencies": {
     "@esm-bundle/chai": "^4.3.4-fix.0",

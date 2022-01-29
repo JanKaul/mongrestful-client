@@ -1,16 +1,16 @@
 import * as jose from "jose"
 import { Db } from "./Db";
-import { Maybe, nothing, maybe, Either, left, right } from "tsmonads";
+import { Option, some, none, Result, ok, err } from "matchingmonads"
 import { match, select } from 'ts-pattern';
 
-export let sessionSecret: Maybe<jose.KeyLike> = nothing()
+export let sessionSecret: Option<jose.KeyLike> = none()
 
 export class MongoClient {
     url: URL
-    db: Maybe<Db>
+    db: Option<Db>
     constructor(urlString) {
         this.url = urlString;
-        this.db = nothing()
+        this.db = none()
     }
     async connect() {
 
@@ -45,23 +45,26 @@ export class MongoClient {
 
         const { payload, protectedHeader } = await jose.jwtDecrypt(secretToken, privateKey)
 
-        const { secret } = payload;
+        const { result } = payload;
 
-        sessionSecret = maybe(await jose.importJWK(JSON.parse(decodeURIComponent(secret as string)), 'A256GCM') as jose.KeyLike)
+        sessionSecret = await match(result as Result<string, string>)
+            .with({ tag: "ok" }, async (x) => some(await jose.importJWK(JSON.parse(decodeURIComponent(x.value as string)), 'A256GCM') as jose.KeyLike))
+            .with({ tag: "err" }, async (x) => { console.log(x.value); return none<jose.KeyLike>() })
+            .exhaustive()
     }
 
     async close() {
 
         await match(sessionSecret)
-            .with({ hasValue: false }, async (_) => nothing())
-            .with({ hasValue: true }, async (res) => {
+            .with({ tag: "none" }, async (_) => none())
+            .with({ tag: "some" }, async (x) => {
 
                 const jwt = await new jose.EncryptJWT({
                     authorized: true
                 })
                     .setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
                     .setIssuedAt()
-                    .encrypt(res.unsafeLift())
+                    .encrypt(x.value)
 
                 let closeUrl = new URL(this.url)
                 closeUrl.pathname = "/close"
@@ -75,13 +78,14 @@ export class MongoClient {
                     body: jwt
                 }).then(response => { return response.text() })
 
-                const { payload, protectedHeader } = await jose.jwtDecrypt(successToken, res.unsafeLift())
+                const { payload, protectedHeader } = await jose.jwtDecrypt(successToken, x.value)
 
-                const { success } = payload;
+                const { result } = payload;
 
-                if (success) { sessionSecret = nothing() }
-
-                return nothing()
+                return match(result as Result<string, string>)
+                    .with({ tag: "ok" }, x => { sessionSecret = none(); console.log(x.value); return none() })
+                    .with({ tag: "err" }, x => { console.log(x.value); return none() })
+                    .exhaustive()
             })
             .exhaustive()
     }
