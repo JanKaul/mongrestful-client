@@ -40,7 +40,7 @@ describe("findOne", () => {
 
 describe("deleteOne", () => {
     it('', (done) => {
-        client.db("test").then(db => db.collection("songs")).then(collection => collection.deleteOne({ artist: "Jack Johnson", name: "Flake" })).then(x => { expect(x._id).to.not.equal(undefined); done() })
+        client.db("test").then(db => db.collection("songs")).then(collection => collection.deleteOne({ artist: "Jack Johnson", name: "Flake" })).then(x => { expect(x.acknowledged).to.equal(true); done() })
             .catch(x => { expect.fail(x); done() })
     })
 });
@@ -48,6 +48,13 @@ describe("deleteOne", () => {
 describe("insertMany", () => {
     it('', (done) => {
         client.db("test").then(db => db.collection("songs")).then(collection => collection.insertMany([{ artist: "Jack Johnson", name: "Upside Down" }, { artist: "Jack Johnson", name: "Good People" }])).then(x => { expect(x.acknowledged).to.equal(true); done() })
+            .catch(x => { expect.fail(x); done() })
+    })
+});
+
+describe("deleteMany", () => {
+    it('', (done) => {
+        client.db("test").then(db => db.collection("songs")).then(collection => collection.deleteMany({ artist: "Jack Johnson" })).then(x => { expect(x.acknowledged).to.equal(true); done() })
             .catch(x => { expect.fail(x); done() })
     })
 });
