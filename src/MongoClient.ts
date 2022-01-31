@@ -2,19 +2,17 @@ import * as jose from "jose"
 import { Option, some, none, Result, ok, err } from "matchingmonads"
 import { match, select } from 'ts-pattern';
 
-import { Db } from "./Db";
+import { Db, DbOptions } from "./Db";
 import { fetchPostEncrypted } from "./fetch";
 
 export let sessionSecret: Option<jose.KeyLike> = none()
 
 export class MongoClient {
     url: URL
-    db: Option<Db>
     constructor(urlString) {
         this.url = urlString;
-        this.db = none()
     }
-    async connect() {
+    async connect(): Promise<MongoClient> {
 
         let publicUrl = new URL(this.url)
         publicUrl.pathname = "/public_key"
@@ -51,14 +49,41 @@ export class MongoClient {
 
         sessionSecret = await match(result as Result<string, string>)
             .with({ tag: "ok" }, async (x) => some(await jose.importJWK(JSON.parse(decodeURIComponent(x.value as string)), 'A256GCM') as jose.KeyLike))
-            .with({ tag: "err" }, async (x) => { console.log(x.value); return none<jose.KeyLike>() })
+            .with({ tag: "err" }, async (x) => none<jose.KeyLike>())
             .exhaustive()
+
+        return await match(result as Result<string, string>)
+            .with({ tag: "ok" }, (x) => ok(this))
+            .with({ tag: "err" }, (x) => err(x.value))
+            .exhaustive()
+            .toPromise()
     }
 
-    async close() {
+    async db(dbName: string, options?: DbOptions): Promise<Db> {
 
-        await match(sessionSecret)
-            .with({ tag: "none" }, async (_) => none())
+        return await (await match(sessionSecret)
+            .with({ tag: "none" }, async (_) => err("Error: The MongoClient has no active session. Try to connect to a server."))
+            .with({ tag: "some" }, async (x) => {
+
+                let dbUrl = new URL(this.url)
+                dbUrl.pathname = "/db"
+
+                const result = await fetchPostEncrypted(dbUrl.toString(), { dbName: dbName, dbOptions: options }, x.value)
+
+                return match(result as Result<string, string>)
+                    .with({ tag: "ok" }, x => ok(new Db(this.url + "/" + dbName)))
+                    .with({ tag: "err" }, x => err(x.value))
+                    .exhaustive()
+            })
+            .exhaustive())
+            .toPromise()
+
+    }
+
+    async close(): Promise<void> {
+
+        return await (await match(sessionSecret)
+            .with({ tag: "none" }, async (_) => err("Error: The MongoClient has no active session. Try to connect to a server."))
             .with({ tag: "some" }, async (x) => {
 
                 let closeUrl = new URL(this.url)
@@ -67,10 +92,11 @@ export class MongoClient {
                 const result = await fetchPostEncrypted(closeUrl.toString(), { authorized: true }, x.value)
 
                 return match(result as Result<string, string>)
-                    .with({ tag: "ok" }, x => { sessionSecret = none(); console.log(x.value); return none() })
-                    .with({ tag: "err" }, x => { console.log(x.value); return none() })
+                    .with({ tag: "ok" }, x => { sessionSecret = none(); return ok(undefined) })
+                    .with({ tag: "err" }, x => err(x.value))
                     .exhaustive()
             })
-            .exhaustive()
+            .exhaustive())
+            .toPromise()
     }
 }

@@ -1,4 +1,8 @@
+export type DbOptions = unknown
+
 export class Db {
-    constructor() {
+    url: string
+    constructor(url) {
+        this.url = url
     }
 }
