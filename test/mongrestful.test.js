@@ -24,6 +24,13 @@ describe("create collection", () => {
     })
 });
 
+describe("findOne", () => {
+    it('', (done) => {
+        client.db("test").then(db => db.collection("songs")).then(collection => collection.findOne()).then(x => { expect(x._id).to.not.equal(undefined); done() })
+            .catch(x => { expect.fail(x); done() })
+    })
+});
+
 describe("close session", () => {
     it('', (done) => {
         client.close().then(x => { expect(x).to.equal(undefined); done() })

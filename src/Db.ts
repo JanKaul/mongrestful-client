@@ -17,10 +17,10 @@ export class Db {
             .with({ tag: "none" }, async (_) => err("Error: The MongoClient has no active session. Try to connect to a server."))
             .with({ tag: "some" }, async (x) => {
 
-                let dbUrl = new URL(this.url)
-                dbUrl.pathname = dbUrl.pathname + "/collection"
+                let collectionUrl = new URL(this.url)
+                collectionUrl.pathname = collectionUrl.pathname + "/collection"
 
-                const result = await fetchPostEncrypted(dbUrl.toString(), { collectionName: collectionName, collectionOptions: collectionOptions }, x.value)
+                const result = await fetchPostEncrypted(collectionUrl.toString(), { collectionName: collectionName, collectionOptions: collectionOptions }, x.value)
 
                 return match(result as Result<string, string>)
                     .with({ tag: "ok" }, x => ok(new Collection(this.url + "/" + collectionName)))
