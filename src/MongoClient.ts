@@ -4,8 +4,7 @@ import { match, select } from 'ts-pattern';
 
 import { Db, DbOptions } from "./Db";
 import { fetchPostEncrypted } from "./fetch";
-
-export let sessionSecret: Option<jose.KeyLike> = none()
+import { setSessionSecret, getSessionSecret } from "./auth";
 
 export class MongoClient {
     url: URL
@@ -47,10 +46,10 @@ export class MongoClient {
 
         const { result } = payload;
 
-        sessionSecret = await match(result as Result<string, string>)
+        setSessionSecret(await match(result as Result<string, string>)
             .with({ tag: "ok" }, async (x) => some(await jose.importJWK(JSON.parse(decodeURIComponent(x.value as string)), 'A256GCM') as jose.KeyLike))
             .with({ tag: "err" }, async (x) => none<jose.KeyLike>())
-            .exhaustive()
+            .exhaustive())
 
         return await match(result as Result<string, string>)
             .with({ tag: "ok" }, (x) => ok(this))
@@ -61,7 +60,7 @@ export class MongoClient {
 
     async db(dbName: string, options?: DbOptions): Promise<Db> {
 
-        return await (await match(sessionSecret)
+        return await (await match(getSessionSecret())
             .with({ tag: "none" }, async (_) => err("Error: The MongoClient has no active session. Try to connect to a server."))
             .with({ tag: "some" }, async (x) => {
 
@@ -82,7 +81,7 @@ export class MongoClient {
 
     async close(): Promise<void> {
 
-        return await (await match(sessionSecret)
+        return await (await match(getSessionSecret())
             .with({ tag: "none" }, async (_) => err("Error: The MongoClient has no active session. Try to connect to a server."))
             .with({ tag: "some" }, async (x) => {
 
@@ -92,7 +91,7 @@ export class MongoClient {
                 const result = await fetchPostEncrypted(closeUrl.toString(), { authorized: true }, x.value)
 
                 return match(result as Result<string, string>)
-                    .with({ tag: "ok" }, x => { sessionSecret = none(); return ok(undefined) })
+                    .with({ tag: "ok" }, x => { setSessionSecret(none()); return ok(undefined) })
                     .with({ tag: "err" }, x => err(x.value))
                     .exhaustive()
             })

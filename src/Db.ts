@@ -2,7 +2,7 @@ import { Option, some, none, Result, ok, err } from "matchingmonads"
 import { match, select } from 'ts-pattern';
 
 import { Collection, CollectionOptions } from "./Collection"
-import { sessionSecret } from "./MongoClient"
+import { getSessionSecret } from "./auth"
 import { fetchPostEncrypted } from "./fetch";
 
 export type DbOptions = unknown
@@ -13,7 +13,7 @@ export class Db {
         this.url = url
     }
     async collection(collectionName: string, collectionOptions: CollectionOptions): Promise<Collection> {
-        return await (await match(sessionSecret)
+        return await (await match(getSessionSecret())
             .with({ tag: "none" }, async (_) => err("Error: The MongoClient has no active session. Try to connect to a server."))
             .with({ tag: "some" }, async (x) => {
 
