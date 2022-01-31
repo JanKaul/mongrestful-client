@@ -24,16 +24,23 @@ describe("create collection", () => {
     })
 });
 
-describe("findOne", () => {
+describe("insertOne", () => {
     it('', (done) => {
-        client.db("test").then(db => db.collection("songs")).then(collection => collection.findOne({ artist: "Creedence Clearwater Revival" })).then(x => { expect(x._id).to.not.equal(undefined); done() })
+        client.db("test").then(db => db.collection("songs")).then(collection => collection.insertOne({ artist: "Jack Johnson", name: "Flake" })).then(x => { expect(x.acknowledged).to.equal(true); done() })
             .catch(x => { expect.fail(x); done() })
     })
 });
 
-describe("insertOne", () => {
+describe("findOne", () => {
     it('', (done) => {
-        client.db("test").then(db => db.collection("songs")).then(collection => collection.insertOne({ artist: "Jack Johnson", name: "Flake" })).then(x => { expect(x.acknowledged).to.equal(true); done() })
+        client.db("test").then(db => db.collection("songs")).then(collection => collection.findOne({ artist: "Jack Johnson" })).then(x => { expect(x._id).to.not.equal(undefined); done() })
+            .catch(x => { expect.fail(x); done() })
+    })
+});
+
+describe("insertMany", () => {
+    it('', (done) => {
+        client.db("test").then(db => db.collection("songs")).then(collection => collection.insertMany([{ artist: "Jack Johnson", name: "Upside Down" }, { artist: "Jack Johnson", name: "Good People" }])).then(x => { expect(x.acknowledged).to.equal(true); done() })
             .catch(x => { expect.fail(x); done() })
     })
 });
