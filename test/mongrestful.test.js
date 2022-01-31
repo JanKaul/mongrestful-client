@@ -17,6 +17,13 @@ describe("connect to database", () => {
     })
 });
 
+describe("create collection", () => {
+    it('', (done) => {
+        client.db("test").then(db => db.collection("songs")).then(x => { expect(x.url).to.equal("http://localhost:3000/test/songs"); done() })
+            .catch(x => { expect.fail(x); done() })
+    })
+});
+
 describe("close session", () => {
     it('', (done) => {
         client.close().then(x => { expect(x).to.equal(undefined); done() })
