@@ -9,9 +9,11 @@ export type DbOptions = unknown
 
 export class Db {
     url: string
+
     constructor(url: string) {
         this.url = url
     }
+
     async collection(collectionName: string, collectionOptions: CollectionOptions): Promise<Collection> {
         return await (await match(getSessionSecret())
             .with({ tag: "none" }, async (_) => err("Error: The MongoClient has no active session. Try to connect to a server."))
