@@ -59,6 +59,13 @@ describe("insertMany", () => {
     })
 });
 
+describe("findCount", () => {
+    it('', (done) => {
+        client.db("test").then(db => db.collection("songs")).then(collection => collection.find({ artist: "Jack Johnson" }).count()).then(x => { expect(x).to.equal(2); done() })
+            .catch(x => { expect.fail(x); done() })
+    })
+});
+
 describe("findToArray", () => {
     it('', (done) => {
         client.db("test").then(db => db.collection("songs")).then(collection => collection.find({ artist: "Jack Johnson" }).toArray()).then(x => { expect(x[0]._id).to.not.equal(undefined); done() })
