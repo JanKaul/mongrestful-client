@@ -40,7 +40,7 @@ describe("findOne", () => {
 
 describe("updateOne", () => {
     it('', (done) => {
-        client.db("test").then(db => db.collection("songs")).then(collection => collection.updateOne({ artist: "Jack Johnson" }, { $set: { name: "Sitting, Waiting, Wishing" }, })).then(x => { expect(x.acknowledged).to.equal(true); done() })
+        client.db("test").then(db => db.collection("songs")).then(collection => collection.updateOne({ artist: "Jack Johnson" }, { $set: { name: "Sitting, Waiting, Wishing" }, })).then(x => { expect(x.modifiedCount).to.equal(1); done() })
             .catch(x => { expect.fail(x); done() })
     })
 });
@@ -69,6 +69,13 @@ describe("insertMany", () => {
 describe("findCount", () => {
     it('', (done) => {
         client.db("test").then(db => db.collection("songs")).then(collection => collection.find({ artist: "Jack Johnson" }).count()).then(x => { expect(x).to.equal(2); done() })
+            .catch(x => { expect.fail(x); done() })
+    })
+});
+
+describe("updateMany", () => {
+    it('', (done) => {
+        client.db("test").then(db => db.collection("songs")).then(collection => collection.updateMany({ artist: "Jack Johnson" }, { $set: { genre: "Acoustic" }, })).then(x => { expect(x.modifiedCount).to.equal(2); done() })
             .catch(x => { expect.fail(x); done() })
     })
 });
