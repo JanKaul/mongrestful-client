@@ -158,4 +158,23 @@ export class Collection {
             .exhaustive())
             .toPromise()
     }
+
+    async replaceOne<T>(filter: Filter, replacement: T, options?: FindOptions): Promise<any> {
+        return await (await match(getSessionSecret())
+            .with({ tag: "none" }, async (_) => err("Error: The MongoClient has no active session. Try to connect to a server."))
+            .with({ tag: "some" }, async (x) => {
+
+                let collectionUrl = new URL(this.url)
+                collectionUrl.pathname = collectionUrl.pathname + "/replaceone"
+
+                const result = await fetchPostEncrypted(collectionUrl.toString(), { filter: filter, replacement: replacement, options: options }, x.value)
+
+                return match(result as Result<string, string>)
+                    .with({ tag: "ok" }, x => ok(x.value))
+                    .with({ tag: "err" }, x => err(x.value))
+                    .exhaustive()
+            })
+            .exhaustive())
+            .toPromise()
+    }
 }

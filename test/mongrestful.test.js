@@ -73,6 +73,13 @@ describe("findCount", () => {
     })
 });
 
+describe("replaceOne", () => {
+    it('', (done) => {
+        client.db("test").then(db => db.collection("songs")).then(collection => collection.replaceOne({ artist: "Jack Johnson", name: "Upside Down" }, { artist: "Jack Johnson", name: "Flake" })).then(x => { expect(x.acknowledged).to.equal(true); done() })
+            .catch(x => { expect.fail(x); done() })
+    })
+});
+
 describe("updateMany", () => {
     it('', (done) => {
         client.db("test").then(db => db.collection("songs")).then(collection => collection.updateMany({ artist: "Jack Johnson" }, { $set: { genre: "Acoustic" }, })).then(x => { expect(x.modifiedCount).to.equal(2); done() })
