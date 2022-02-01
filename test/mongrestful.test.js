@@ -59,6 +59,13 @@ describe("insertMany", () => {
     })
 });
 
+describe("findToArray", () => {
+    it('', (done) => {
+        client.db("test").then(db => db.collection("songs")).then(collection => collection.find({ artist: "Jack Johnson" }).toArray()).then(x => { expect(x[0]._id).to.not.equal(undefined); done() })
+            .catch(x => { expect.fail(x); done() })
+    })
+});
+
 describe("deleteMany", () => {
     it('', (done) => {
         client.db("test").then(db => db.collection("songs")).then(collection => collection.deleteMany({ artist: "Jack Johnson" })).then(x => { expect(x.acknowledged).to.equal(true); done() })
