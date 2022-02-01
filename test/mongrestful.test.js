@@ -38,6 +38,13 @@ describe("findOne", () => {
     })
 });
 
+describe("updateOne", () => {
+    it('', (done) => {
+        client.db("test").then(db => db.collection("songs")).then(collection => collection.updateOne({ artist: "Jack Johnson" }, { $set: { name: "Sitting, Waiting, Wishing" }, })).then(x => { expect(x.acknowledged).to.equal(true); done() })
+            .catch(x => { expect.fail(x); done() })
+    })
+});
+
 describe("findNext", () => {
     it('', (done) => {
         client.db("test").then(db => db.collection("songs")).then(collection => collection.find({ artist: "Jack Johnson" }).next()).then(x => { expect(x._id).to.not.equal(undefined); done() })
@@ -47,7 +54,7 @@ describe("findNext", () => {
 
 describe("deleteOne", () => {
     it('', (done) => {
-        client.db("test").then(db => db.collection("songs")).then(collection => collection.deleteOne({ artist: "Jack Johnson", name: "Flake" })).then(x => { expect(x.acknowledged).to.equal(true); done() })
+        client.db("test").then(db => db.collection("songs")).then(collection => collection.deleteOne({ artist: "Jack Johnson", name: "Sitting, Waiting, Wishing" })).then(x => { expect(x.acknowledged).to.equal(true); done() })
             .catch(x => { expect.fail(x); done() })
     })
 });
