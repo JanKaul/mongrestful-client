@@ -2,6 +2,7 @@ import { Option, some, none, Result, ok, err } from "matchingmonads"
 import { match, select } from 'ts-pattern';
 import { getSessionSecret } from "./auth"
 import { fetchPostEncrypted } from "./fetch";
+import { FindCursor } from "./FindCursor";
 
 export type CollectionOptions = unknown
 
@@ -36,6 +37,10 @@ export class Collection {
             })
             .exhaustive())
             .toPromise()
+    }
+
+    find(filter?: Filter, options?: FindOptions): FindCursor {
+        return new FindCursor(this.url, filter, options)
     }
 
     async insertOne<T>(doc: T, options?: InsertOneOptions): Promise<any> {
